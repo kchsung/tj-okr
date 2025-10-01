@@ -1,0 +1,7 @@
+streamlit>=1.37.0
+sqlalchemy>=2.0.30
+pydantic>=2.7.0
+python-dotenv>=1.0.1
+openai>=1.40.0          # 최신 OpenAI Python SDK
+requests>=2.32.3
+uvicorn>=0.30.0         # (선택) 로컬 API 서버 확장 시

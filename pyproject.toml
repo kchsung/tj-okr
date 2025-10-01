@@ -1,0 +1,12 @@
+[project]
+name = "okr-mini"
+version = "0.1.0"
+dependencies = [
+  "streamlit>=1.37.0",
+  "sqlalchemy>=2.0.30",
+  "pydantic>=2.7.0",
+  "python-dotenv>=1.0.1",
+  "openai>=1.40.0",
+  "requests>=2.32.3",
+]
+requires-python = ">=3.10"

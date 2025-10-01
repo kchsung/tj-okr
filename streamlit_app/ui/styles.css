@@ -1,0 +1,51 @@
+.header { padding: 0.25rem 0; }
+.header h2 { margin-bottom: 0; }
+
+/* 카드 느낌 */
+.block-container { max-width: 1400px; }
+
+/* 입력 정돈 */
+textarea, input, select { border-radius: 10px !important; }
+
+/* 좌우 분할 레이아웃 - Streamlit columns로 처리 */
+
+/* 진행바 스타일 */
+.progress-container {
+    background: #f0f2f6;
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+    height: 20px;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+/* 달력 스타일 */
+.calendar-container {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* 수행내역 카드 */
+.progress-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* AI 검증 결과 */
+.ai-feedback {
+    background: #e8f4fd;
+    border-left: 4px solid #1f77b4;
+    padding: 1rem;
+    border-radius: 0 10px 10px 0;
+    margin: 1rem 0;
+}
