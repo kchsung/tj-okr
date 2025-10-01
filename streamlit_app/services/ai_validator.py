@@ -8,7 +8,11 @@ try:
 except Exception:  # 호환성 대비
     OpenAI = None  # type: ignore
 
-from ..config.settings import settings
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from config.settings import settings
 
 DEFAULT_MODEL = settings.openai_model
 

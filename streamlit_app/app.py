@@ -1,13 +1,20 @@
 from __future__ import annotations
 import streamlit as st
-from streamlit_app.ui.components import (
+import sys
+import os
+
+# Streamlit Cloud에서 모듈 경로 문제 해결
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from ui.components import (
     page_header, left_panel, right_panel, show_ai_feedback, show_okr_evaluation
 )
-from streamlit_app.services.ai_validator import validate_okr
-from streamlit_app.config.settings import settings
+from services.ai_validator import validate_okr
+from config.settings import settings
 
 # CSS 로드
-with open("streamlit_app/ui/styles.css", "r", encoding="utf-8") as f:
+css_path = os.path.join(os.path.dirname(__file__), "ui", "styles.css")
+with open(css_path, "r", encoding="utf-8") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 page_header()

@@ -2,8 +2,13 @@ from __future__ import annotations
 from typing import Iterable, List, Optional
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from .models import Base, Company, OKRCycle, Objective, KeyResult, KRUpdate
-from ..config.settings import settings
+from config.settings import settings
 
 _engine = create_engine(settings.db_url, echo=False)
 Base.metadata.create_all(_engine)
