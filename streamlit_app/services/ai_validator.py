@@ -42,8 +42,15 @@ def _client() -> Optional["OpenAI"]:
     api_key = settings.openai_api_key
     if not api_key:
         return None
+    
+    # API 키 형식 검증
+    if not api_key.startswith("sk-"):
+        return None
         
-    return OpenAI(api_key=api_key)
+    try:
+        return OpenAI(api_key=api_key)
+    except Exception:
+        return None
 
 
 def validate_okr(
@@ -100,7 +107,40 @@ def validate_okr(
     model = model or DEFAULT_MODEL
     client = _client()
     if client is None:
-        raise RuntimeError("OpenAI SDK가 설치되지 않았습니다. requirements.txt를 확인하세요.")
+        return """
+## ⚠️ OpenAI 설정 오류
+
+OpenAI SDK가 설치되지 않았거나 API 키가 설정되지 않았습니다.
+
+### 해결 방법:
+1. **API 키 확인**: Streamlit Cloud의 "Manage app" → "Secrets"에서 `OPENAI_API_KEY` 설정 확인
+2. **환경변수 확인**: `OPENAI_API_KEY` 환경변수가 올바르게 설정되었는지 확인
+3. **API 키 형식**: `sk-`로 시작하는 올바른 형식인지 확인
+
+### 임시 테스트용 피드백:
+**진단 요약:**
+- Objective가 명확하고 구체적임
+- KR들이 실행 가능한 채널을 제시함
+- 진행상황이 추적 가능함
+
+**정합성 점검:**
+- Objective와 KR들이 잘 연결되어 있음
+- 수행내역이 목표 달성에 기여함
+
+**수치화/측정 보완 제안:**
+- 각 KR별 구체적인 수치 목표 설정 필요
+- 진행률 측정 방법 구체화 필요
+
+**다음 주 우선과제 Top 3:**
+1. 각 채널별 구체적인 배포 수량 목표 설정
+2. 배포 후 피드백 수집 방법 구축
+3. 사용자 참여도 측정 지표 정의
+
+**위험요인 및 가드레일:**
+- 학생들의 관심도가 낮을 수 있음
+- 배포 채널의 접근성 제한 가능성
+- 피드백 수집의 어려움
+        """
 
     user_content = (
         "# Objective\n" + objective.strip() + "\n\n" +
@@ -197,4 +237,38 @@ def validate_okr(
 - 피드백 수집의 어려움
             """
         else:
-            raise RuntimeError(f"OpenAI 호출 실패: {e}")
+            return f"""
+## ⚠️ OpenAI API 호출 오류
+
+API 호출 중 오류가 발생했습니다: {error_msg}
+
+### 해결 방법:
+1. **API 키 확인**: Streamlit Cloud의 "Manage app" → "Secrets"에서 `OPENAI_API_KEY` 설정 확인
+2. **API 키 형식**: `sk-`로 시작하는 올바른 형식인지 확인
+3. **API 사용량**: OpenAI 계정의 사용량 한도 확인
+4. **네트워크 연결**: 인터넷 연결 상태 확인
+
+### 임시 테스트용 피드백:
+**진단 요약:**
+- Objective가 명확하고 구체적임
+- KR들이 실행 가능한 채널을 제시함
+- 진행상황이 추적 가능함
+
+**정합성 점검:**
+- Objective와 KR들이 잘 연결되어 있음
+- 수행내역이 목표 달성에 기여함
+
+**수치화/측정 보완 제안:**
+- 각 KR별 구체적인 수치 목표 설정 필요
+- 진행률 측정 방법 구체화 필요
+
+**다음 주 우선과제 Top 3:**
+1. 각 채널별 구체적인 배포 수량 목표 설정
+2. 배포 후 피드백 수집 방법 구축
+3. 사용자 참여도 측정 지표 정의
+
+**위험요인 및 가드레일:**
+- 학생들의 관심도가 낮을 수 있음
+- 배포 채널의 접근성 제한 가능성
+- 피드백 수집의 어려움
+            """
