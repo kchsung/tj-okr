@@ -12,7 +12,7 @@ if os.path.exists(".env"):
 class Settings:
     # Streamlit Cloud에서는 환경변수나 secrets를 사용
     db_url: str = os.getenv("DB_URL", "sqlite:///okr.db")
-    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-5-nano")
     
     @property
     def openai_api_key(self) -> str:

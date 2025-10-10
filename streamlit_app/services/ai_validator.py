@@ -76,10 +76,10 @@ def validate_okr(
 - **단일 KR 원칙**: 한 로그에 다수 KR이 섞이면 분리 제안.
 - **Outcome 중심**: 산출물 나열이 아니라 지표 변화·영향이 드러나는지 확인.
 - **수치 명확성**: Baseline/Today/Target, **단위**, **근거 URL**이 있는지.
-- **인과성 언어**: “~인 듯”, “영향 준 것 같다”처럼 모호하면 **검증 필요**로 표시.
+- **인과성 언어**: "~인 듯", "영향 준 것 같다"처럼 모호하면 **검증 필요**로 표시.
 - **다음 액션**: 24–48시간 내 수행 가능한 **행동 단위**로 다시 쓰게 지도.
 - **일관성**: 상태/Confidence와 서술 내용이 충돌하면 정렬 방안 제시.
-- **사실 충실**: 추정·창작 금지. 증거 링크가 없으면 “추가 필요”만 지시.
+- **사실 충실**: 추정·창작 금지. 증거 링크가 없으면 "추가 필요"만 지시.
 
 ## 출력 형식 (섹션 제목 고정, 점수/등급 금지)
 1) 부족/누락 항목
@@ -90,7 +90,7 @@ def validate_okr(
 
 3) 다시 작성 가이드 (사용자에게 직접 지시)
    - 불릿 3–6개: **필수 기재 요소**(KR 1개, Baseline/Today/Target+단위, 증거 URL, 다음 액션을 행동 단위로 등)
-   - “이렇게 쓰면 좋다” 형식의 간단 규칙
+   - "이렇게 쓰면 좋다" 형식의 간단 규칙
 
 4) 다시 작성 템플릿 (복붙용, Markdown)
    - KR / 오늘 한 일 / 수치(B→T/Target + 단위) / 증거 링크 / 배운 점 / 내일 할 일(24–48h) /
@@ -105,6 +105,15 @@ def validate_okr(
 - JSON을 출력할 경우 **한 개**만, 섹션 6에서만.
 (끝)"""
     model = model or DEFAULT_MODEL
+    
+    # 모델 접근 가능성 확인을 위한 fallback 모델 리스트 (GPT-5 계열만)
+    fallback_models = [
+        model,  # 사용자가 지정한 모델
+        "gpt-5-nano",     # 가장 저렴하고 빠른 모델
+        "gpt-5-mini",     # 중간 성능 모델
+        "gpt-5",          # 최고 성능 모델
+    ]
+    
     client = _client()
     if client is None:
         return """
@@ -149,104 +158,59 @@ OpenAI SDK가 설치되지 않았거나 API 키가 설정되지 않았습니다.
         (f"# 추가 요구사항\n{user_prompt.strip()}\n" if user_prompt.strip() else "")
     )
 
-    # gpt-5 모델은 temperature 파라미터를 지원하지 않으므로 조건부로 처리
-    use_temperature = not model.startswith("gpt-5")
+    # 모델별 fallback 시도
+    for current_model in fallback_models:
+        try:
+            # gpt-5 모델은 temperature 파라미터를 지원하지 않으므로 조건부로 처리
+            use_temperature = not current_model.startswith("gpt-5")
+            
+            # Chat Completions API 사용 (가장 안정적)
+            if use_temperature:
+                resp = client.chat.completions.create(
+                    model=current_model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_content},
+                    ],
+                    temperature=temperature,
+                )
+            else:
+                resp = client.chat.completions.create(
+                    model=current_model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_content},
+                    ],
+                )
+            
+            # 성공하면 결과 반환
+            return resp.choices[0].message.content or ""
+            
+        except Exception as e:
+            error_msg = str(e)
+            # 모델 접근 권한 오류인 경우 다음 모델 시도
+            if "model_not_found" in error_msg or "does not have access" in error_msg or "403" in error_msg:
+                continue  # 다음 모델 시도
+            else:
+                # 다른 종류의 오류는 즉시 처리
+                break
     
-    # 우선 Responses API 시도, 실패 시 Chat Completions로 폴백
-    try:
-        if use_temperature:
-            resp = client.responses.create(  # type: ignore
-                model=model,
-                input=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
-                ],
-                temperature=temperature,
-            )
-        else:
-            resp = client.responses.create(  # type: ignore
-                model=model,
-                input=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
-                ],
-            )
-        # SDK 1.x Responses 출력 포맷 가정
-        txt = resp.output_text  # type: ignore[attr-defined]
-        if txt:
-            return txt
-    except Exception:
-        pass
+    # 모든 모델이 실패한 경우 - 최종 에러 처리
+    return f"""
+## ⚠️ 모든 OpenAI 모델에 접근할 수 없습니다
 
-    # Fallback: Chat Completions
-    try:
-        if use_temperature:
-            resp = client.chat.completions.create(  # type: ignore
-                model=model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
-                ],
-                temperature=temperature,
-            )
-        else:
-            resp = client.chat.completions.create(  # type: ignore
-                model=model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
-                ],
-            )
-        return resp.choices[0].message.content or ""
-    except Exception as e:
-        error_msg = str(e)
-        if "401" in error_msg or "invalid_api_key" in error_msg:
-            return """
-## ⚠️ OpenAI API 키 설정이 필요합니다
-
-현재 API 키가 설정되지 않았거나 잘못되었습니다.
+시도한 모델들: {', '.join(fallback_models)}
 
 ### 해결 방법:
-1. [OpenAI Platform](https://platform.openai.com/api-keys)에서 API 키 발급
-2. `.env` 파일에서 `OPENAI_API_KEY=your_actual_key_here`로 수정
-3. 앱 재시작
+1. **OpenAI 계정 확인**: [OpenAI Platform](https://platform.openai.com/)에서 계정 상태 확인
+2. **모델 접근 권한**: 사용 가능한 모델 목록 확인
+3. **API 키 권한**: API 키가 올바른 권한을 가지고 있는지 확인
+4. **사용량 한도**: API 사용량 한도 확인
 
-### 임시 테스트용 피드백:
-**진단 요약:**
-- Objective가 명확하고 구체적임
-- KR들이 실행 가능한 채널을 제시함
-- 진행상황이 추적 가능함
-
-**정합성 점검:**
-- Objective와 KR들이 잘 연결되어 있음
-- 각 KR이 목표 달성에 기여함
-
-**수치화/측정 보완 제안:**
-- KR #1: 인천대 학생 배포 수량 목표 설정 (예: 300명)
-- KR #2: 수원대 학생 배포 수량 목표 설정 (예: 300명)  
-- KR #3: 오픈채팅방 배포 수량 목표 설정 (예: 400명)
-
-**다음 주 우선과제 Top 3:**
-1. 각 채널별 구체적인 배포 수량 목표 설정
-2. 배포 후 피드백 수집 방법 구축
-3. 사용자 참여도 측정 지표 정의
-
-**위험요인 및 가드레일:**
-- 학생들의 관심도가 낮을 수 있음
-- 배포 채널의 접근성 제한 가능성
-- 피드백 수집의 어려움
-            """
-        else:
-            return f"""
-## ⚠️ OpenAI API 호출 오류
-
-API 호출 중 오류가 발생했습니다: {error_msg}
-
-### 해결 방법:
-1. **API 키 확인**: Streamlit Cloud의 "Manage app" → "Secrets"에서 `OPENAI_API_KEY` 설정 확인
-2. **API 키 형식**: `sk-`로 시작하는 올바른 형식인지 확인
-3. **API 사용량**: OpenAI 계정의 사용량 한도 확인
-4. **네트워크 연결**: 인터넷 연결 상태 확인
+### 권장 모델 (GPT-5 계열):
+- `gpt-5-nano`: 가장 저렴하고 빠른 모델
+- `gpt-5-mini`: 중간 성능 모델
+- `gpt-5`: 최고 성능 모델
 
 ### 임시 테스트용 피드백:
 **진단 요약:**
@@ -271,4 +235,4 @@ API 호출 중 오류가 발생했습니다: {error_msg}
 - 학생들의 관심도가 낮을 수 있음
 - 배포 채널의 접근성 제한 가능성
 - 피드백 수집의 어려움
-            """
+    """
